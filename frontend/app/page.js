@@ -17,25 +17,44 @@ export default function Home() {
     setLoading(true);
 
     // Fake AI delay
-    setTimeout(() => {
-      const blogText = "This is a sample AI-generated blog post...";
-      const videoText = "Hook → Problem → Solution → CTA";
+    const handleGenerate = async () => {
+  setLoading(true);
 
-      setBlog(blogText);
-      setVideo(videoText);
+  try {
+    const response = await fetch("http://127.0.0.1:8000/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        description,
+        category,
+        tone,
+      }),
+    });
 
-      setHistory((prev) => [
-        {
-          description,
-          category,
-          tone,
-          time: new Date().toLocaleTimeString(),
-        },
-        ...prev,
-      ]);
+    const data = await response.json();
 
-      setLoading(false);
-    }, 2000);
+    setBlog(data.blog);
+    setVideo(data.video);
+
+    setHistory((prev) => [
+      {
+        description,
+        category,
+        tone,
+        time: new Date().toLocaleTimeString(),
+      },
+      ...prev,
+    ]);
+  } catch (error) {
+    console.error("Error generating content:", error);
+    alert("Backend error. Is FastAPI running?");
+  } finally {
+    setLoading(false);
+  }
+};
+
   };
 
   const copyText = (text) => {
