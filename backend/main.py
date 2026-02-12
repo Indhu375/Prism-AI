@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 from groq import Groq
@@ -8,19 +9,27 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Initialize FastAPI
+# ─── App Setup ────────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="Prism AI - Blog Generator",
-    description="AI Powered SEO Blog Generator using Groq",
-    version="1.0"
+    title="Prism AI",
+    description="AI-powered Video Script & Blog Generation API",
+    version="1.0.0",
+)
+
+# CORS – allow all origins during development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Initialize Groq Client
-client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
-)
+client = Groq(api_key=os.getenv("API_KEY"))
 
-# Request Model
+
+# ─── Request Models ──────────────────────────────────────────────────────────
 class BlogRequest(BaseModel):
     topic: str
     tone: str
@@ -29,7 +38,7 @@ class BlogRequest(BaseModel):
     seo_keywords: List[str]
     language: str = "English"
 
-# Video Script Request Model
+
 class VideoRequest(BaseModel):
     topic: str
     platform: str  # YouTube / Instagram / LinkedIn
@@ -39,14 +48,22 @@ class VideoRequest(BaseModel):
     language: str = "English"
 
 
-# Health check route
+# ─── Routes ───────────────────────────────────────────────────────────────────
 @app.get("/")
 def home():
-    return {"message": "Prism AI Blog Generator is Running 🚀"}
+    return {
+        "message": "Prism AI is Running 🚀",
+        "docs": "/docs",
+        "endpoints": {
+            "generate_blog": "/generate-blog",
+            "generate_video_script": "/generate-video-script",
+        },
+    }
 
-# Blog generation route
+
 @app.post("/generate-blog")
 def generate_blog(request: BlogRequest):
+    """Generate an SEO-optimized blog article."""
     try:
         prompt = f"""
 You are a professional SEO blog writer.
@@ -87,10 +104,10 @@ Call To Action:
             model="llama-3.1-8b-instant",
             messages=[
                 {"role": "system", "content": "You are a professional content strategist."},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             temperature=0.7,
-            max_tokens=2000
+            max_tokens=2000,
         )
 
         generated_text = response.choices[0].message.content
@@ -100,16 +117,16 @@ Call To Action:
             "topic": request.topic,
             "tone": request.tone,
             "word_count": request.word_count,
-            "generated_blog": generated_text
+            "generated_blog": generated_text,
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Video Script Generation Route
 @app.post("/generate-video-script")
 def generate_video_script(request: VideoRequest):
+    """Generate an engaging video script."""
     try:
         prompt = f"""
 You are a professional video script writer and content strategist.
@@ -149,10 +166,10 @@ Outro:
             model="llama-3.1-8b-instant",
             messages=[
                 {"role": "system", "content": "You are a professional video script creator."},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             temperature=0.7,
-            max_tokens=2000
+            max_tokens=2000,
         )
 
         generated_script = response.choices[0].message.content
@@ -162,11 +179,16 @@ Outro:
             "topic": request.topic,
             "platform": request.platform,
             "duration": request.duration,
-            "generated_script": generated_script
+            "generated_script": generated_script,
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ─── Entry Point ──────────────────────────────────────────────────────────────
 # to run : python -m uvicorn main:app --reload
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
