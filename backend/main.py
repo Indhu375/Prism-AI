@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
 from groq import Groq
 import os
 from dotenv import load_dotenv
@@ -31,21 +30,16 @@ client = Groq(api_key=os.getenv("API_KEY"))
 
 # ─── Request Models ──────────────────────────────────────────────────────────
 class BlogRequest(BaseModel):
-    topic: str
+    product_name: str
     tone: str
-    target_audience: str
     word_count: int
-    seo_keywords: List[str]
-    language: str = "English"
 
 
 class VideoRequest(BaseModel):
-    topic: str
-    platform: str  # YouTube / Instagram / LinkedIn
-    target_audience: str
-    duration: str  # e.g., "60 seconds", "5 minutes"
+    product_name: str
     tone: str
-    language: str = "English"
+    word_count: int
+    duration: str  # e.g., "60 seconds", "5 minutes"
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
@@ -70,27 +64,24 @@ You are a professional SEO blog writer.
 
 Write a high-quality, engaging, and SEO-optimized blog article using the following details:
 
-Topic: {request.topic}
+Product Name: {request.product_name}
 Tone: {request.tone}
-Target Audience: {request.target_audience}
 Word Count: Approximately {request.word_count} words
-SEO Keywords: {", ".join(request.seo_keywords)}
-Language: {request.language}
 
 Follow this structure STRICTLY:
 
 Title:
-<SEO optimized title>
+<SEO optimized title about the product>
 
 Meta Description:
 <150-160 characters meta description>
 
 Introduction:
-<Engaging hook-based introduction>
+<Engaging hook-based introduction about the product>
 
 Main Content:
 <Use H2 and H3 headings properly>
-<Include SEO keywords naturally>
+<Cover product features, benefits, and use cases>
 <Make content informative and structured>
 
 Conclusion:
@@ -114,7 +105,7 @@ Call To Action:
 
         return {
             "status": "success",
-            "topic": request.topic,
+            "product_name": request.product_name,
             "tone": request.tone,
             "word_count": request.word_count,
             "generated_blog": generated_text,
@@ -133,33 +124,33 @@ You are a professional video script writer and content strategist.
 
 Create a highly engaging and structured video script using the following details:
 
-Topic: {request.topic}
-Platform: {request.platform}
-Target Audience: {request.target_audience}
-Duration: {request.duration}
+Product Name: {request.product_name}
 Tone: {request.tone}
-Language: {request.language}
+Duration: {request.duration}
 
 Follow this structure STRICTLY:
 
 Hook (First 5-10 seconds):
-<Powerful attention-grabbing opening>
+<Powerful attention-grabbing opening about the product>
 
 Introduction:
-<Brief intro to topic>
+<Brief intro to the product and what the video will cover>
 
 Main Content:
-<Clear, engaging, well-paced content>
-<Use storytelling or examples if suitable>
+<Cover product features, benefits, and use cases>
+<Use storytelling or real-world examples>
+<Keep pacing appropriate for {request.duration} video>
 
 Engagement Prompt:
-<Ask viewers to comment/like/share>
+<Ask viewers to comment, like, and share>
 
 Call To Action:
-<Clear CTA aligned to platform>
+<Clear CTA — try the product, visit the website, etc.>
 
 Outro:
 <Strong memorable closing line>
+
+Important: Make sure the script feels natural when spoken aloud and fits within a {request.duration} video.
 """
 
         response = client.chat.completions.create(
@@ -176,8 +167,8 @@ Outro:
 
         return {
             "status": "success",
-            "topic": request.topic,
-            "platform": request.platform,
+            "product_name": request.product_name,
+            "tone": request.tone,
             "duration": request.duration,
             "generated_script": generated_script,
         }
