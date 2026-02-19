@@ -26,7 +26,7 @@
 |---|---|
 | 📝 **SEO Blog** | A fully structured, SEO-optimized blog article with title, meta description, headings, and CTA |
 | 🎬 **Video Script** | A professional video script with hook, intro, main content, engagement prompt, and outro |
-| 🖼️ **Social Media Image** | Eye-catching visuals tailored for platforms like Instagram, LinkedIn & Twitter *(coming soon)* |
+| 🖼️ **Social Media Image** | Eye-catching AI-generated visuals tailored for platforms like Instagram, LinkedIn & Twitter |
 
 > **One input. Three powerful outputs.** Save hours of content creation time.
 
@@ -37,7 +37,7 @@
 - 🎯 **Single Input Workflow** — Enter a product name and let AI handle the rest
 - 📝 **SEO Blog Generation** — Structured articles with proper headings, meta descriptions & CTAs
 - 🎬 **Video Script Generation** — Platform-ready scripts with hooks, pacing & engagement prompts
-- 🖼️ **Social Media Image Generation** — AI-generated visuals for social platforms *(coming soon)*
+- 🖼️ **Social Media Image Generation** — AI-generated visuals for social platforms via Together AI (FLUX)
 - ⚡ **Powered by Groq + LLaMA 3.1** — Ultra-fast inference for instant content
 - 🔌 **RESTful API** — Clean FastAPI backend with interactive Swagger docs
 - 🌐 **CORS Enabled** — Ready to connect with any frontend
@@ -49,7 +49,8 @@
 | Layer | Technology |
 |---|---|
 | **Backend** | Python, FastAPI |
-| **AI Model** | Groq API (LLaMA 3.1) |
+| **Text AI** | Groq API (LLaMA 3.1) |
+| **Image AI** | Together AI (FLUX.1-schnell) |
 | **API Docs** | Swagger UI (auto-generated) |
 | **Frontend** | *Coming Soon* |
 
@@ -63,6 +64,8 @@ Prism-AI/
 │   ├── main.py               # FastAPI app — routes & entry point
 │   ├── blog_generation.py    # Blog generation logic (Groq API)
 │   ├── video_script.py       # Video script generation logic (Groq API)
+│   ├── image_generation.py   # Image generation logic (Together AI + Groq)
+│   ├── generated_images/     # Saved generated images (auto-created)
 │   └── .gitignore
 ├── .env                      # Environment variables (API keys)
 └── README.md
@@ -87,7 +90,7 @@ cd Prism-AI
 ### 2. Install Dependencies
 
 ```bash
-pip install fastapi uvicorn groq python-dotenv
+pip install fastapi uvicorn groq python-dotenv together Pillow requests
 ```
 
 ### 3. Set Up Environment Variables
@@ -96,6 +99,7 @@ Create a `.env` file in the `backend/` directory:
 
 ```env
 API_KEY=your_groq_api_key_here
+TOGETHER_API_KEY=your_together_api_key_here
 ```
 
 ### 4. Run the Server
@@ -162,13 +166,39 @@ Generate a structured video script.
 }
 ```
 
+### `POST /generate-image`
+Generate a social media image for a product.
+
+**Request Body:**
+```json
+{
+  "product_name": "Prism AI",
+  "style": "Minimalist",
+  "platform": "Instagram"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "product_name": "Prism AI",
+  "style": "Minimalist",
+  "platform": "Instagram",
+  "dimensions": { "width": 1080, "height": 1080 },
+  "image_prompt": "...",
+  "image_url": "/images/prism_ai_instagram_abc12345.png",
+  "filename": "prism_ai_instagram_abc12345.png"
+}
+```
+
 ---
 
 ## 🗺️ Roadmap
 
 - [x] Blog Generation API
 - [x] Video Script Generation API
-- [ ] Social Media Image Generation
+- [x] Social Media Image Generation
 - [ ] Frontend Website (React / Next.js)
 - [ ] User Authentication
 - [ ] Content History & Dashboard
