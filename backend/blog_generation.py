@@ -5,11 +5,15 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Initialize Groq Client
-client = Groq(api_key=os.getenv("API_KEY"))
+
+def get_groq_client():
+    api_key = os.getenv("API_KEY")
+    if not api_key:
+        raise ValueError("API_KEY environment variable is not set")
+    return Groq(api_key=api_key)
 
 
-def generate_blog(product_name: str, tone: str, word_count: int, model: str = "llama-3.1-70b-versatile") -> dict:
+def generate_blog(product_name: str, tone: str, word_count: int, model: str = "llama-3.3-70b-versatile") -> dict:
     """
     Generate an SEO-optimized blog article for a product using Groq API.
 
@@ -55,6 +59,7 @@ Call To Action:
 """
 
     try:
+        client = get_groq_client()
         response = client.chat.completions.create(
             model=model,
             messages=[
