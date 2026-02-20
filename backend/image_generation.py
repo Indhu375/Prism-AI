@@ -10,10 +10,6 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Initialize clients
-groq_client = Groq(api_key=os.getenv("API_KEY"))
-together_client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
-
 # Directory to save generated images
 IMAGE_DIR = Path(__file__).parent / "generated_images"
 IMAGE_DIR.mkdir(exist_ok=True)
@@ -26,6 +22,20 @@ PLATFORM_SIZES = {
     "facebook": {"width": 1200, "height": 630},
     "youtube": {"width": 1280, "height": 720},
 }
+
+
+def get_groq_client():
+    api_key = os.getenv("API_KEY")
+    if not api_key:
+        raise ValueError("API_KEY environment variable is not set")
+    return Groq(api_key=api_key)
+
+
+def get_together_client():
+    api_key = os.getenv("TOGETHER_API_KEY")
+    if not api_key:
+        raise ValueError("TOGETHER_API_KEY environment variable is not set")
+    return Together(api_key=api_key)
 
 
 def _generate_image_prompt(product_name: str, style: str, platform: str) -> str:
@@ -53,8 +63,9 @@ Requirements:
 Output the image prompt directly, nothing else.
 """
 
-    response = groq_client.chat.completions.create(
-        model="llama-3.1-70b-versatile",
+    client = get_groq_client()
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": "You are a visual design prompt engineer."},
             {"role": "user", "content": meta_prompt},
@@ -96,7 +107,8 @@ def generate_image(
         image_prompt = _generate_image_prompt(product_name, style, platform)
 
         # Step 2: Generate the image using Together AI FLUX model
-        response = together_client.images.generate(
+        client = get_together_client()
+        response = client.images.generate(
             prompt=image_prompt,
             model="black-forest-labs/FLUX.1-schnell-Free",
             width=dimensions["width"],

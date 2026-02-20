@@ -5,11 +5,15 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Initialize Groq Client
-client = Groq(api_key=os.getenv("API_KEY"))
+
+def get_groq_client():
+    api_key = os.getenv("API_KEY")
+    if not api_key:
+        raise ValueError("API_KEY environment variable is not set")
+    return Groq(api_key=api_key)
 
 
-def generate_video_script(product_name: str, tone: str, duration_mins: int, model: str = "llama-3.1-70b-versatile") -> dict:
+def generate_video_script(product_name: str, tone: str, duration_mins: int, model: str = "llama-3.3-70b-versatile") -> dict:
     """
     Generate a video script for a product using Groq API.
 
@@ -57,6 +61,7 @@ Important: Make sure the script feels natural when spoken aloud and fits within 
 """
 
     try:
+        client = get_groq_client()
         response = client.chat.completions.create(
             model=model,
             messages=[
