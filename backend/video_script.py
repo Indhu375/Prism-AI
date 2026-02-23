@@ -1,33 +1,37 @@
-import os
-from groq import Groq
-from dotenv import load_dotenv
+"""
+Prism AI — Video Script Generation Module
 
-# Load environment variables
-load_dotenv()
+Generates structured video scripts using the Groq LLM.
+"""
+
+import asyncio
+import logging
+
+from config import DEFAULT_LLM_MODEL, get_groq_client
+
+logger = logging.getLogger("prism.video")
 
 
-def get_groq_client():
-    api_key = os.getenv("API_KEY")
-    if not api_key:
-        raise ValueError("API_KEY environment variable is not set")
-    return Groq(api_key=api_key)
-
-
-def generate_video_script(product_name: str, tone: str, duration_mins: int, model: str = "llama-3.3-70b-versatile") -> dict:
+async def generate_video_script(
+    product_name: str,
+    tone: str,
+    duration_mins: int,
+    model: str = DEFAULT_LLM_MODEL,
+) -> dict:
     """
     Generate a video script for a product using Groq API.
 
     Args:
         product_name: Name of the product
-        tone: Writing tone (e.g., Professional, Casual, Energetic)
+        tone:         Writing tone (e.g., Professional, Casual, Energetic)
         duration_mins: Video duration in minutes
+        model:        LLM model identifier
 
     Returns:
         dict with status, metadata, and generated script
     """
 
-    prompt = f"""
-You are a professional video script writer and content strategist.
+    prompt = f"""You are a professional video script writer and content strategist.
 
 Create a highly engaging and structured video script for the following product:
 
@@ -57,33 +61,29 @@ Call To Action:
 Outro:
 <Strong memorable closing line>
 
-Important: Make sure the script feels natural when spoken aloud and fits within a {duration_mins}-minute video.
-"""
+Important: Make sure the script feels natural when spoken aloud and fits within a {duration_mins}-minute video."""
 
-    try:
-        client = get_groq_client()
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": "You are a professional video script creator."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=2000
-        )
+    logger.info("Generating video script for '%s' (tone=%s, %d min)", product_name, tone, duration_mins)
 
-        generated_script = response.choices[0].message.content
+    client = get_groq_client()
+    response = await asyncio.to_thread(
+        client.chat.completions.create,
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are a professional video script creator."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.7,
+        max_tokens=2000,
+    )
 
-        return {
-            "status": "success",
-            "product_name": product_name,
-            "tone": tone,
-            "duration_mins": duration_mins,
-            "generated_script": generated_script
-        }
+    generated_script = response.choices[0].message.content
+    logger.info("Video script generated successfully for '%s'", product_name)
 
-    except Exception as e:
-        return {
-            "status": "error",
-            "error": str(e)
-        }
+    return {
+        "status": "success",
+        "product_name": product_name,
+        "tone": tone,
+        "duration_mins": duration_mins,
+        "generated_script": generated_script,
+    }
