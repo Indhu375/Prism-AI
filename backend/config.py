@@ -7,6 +7,7 @@ and shared constants used across all generation modules.
 
 import os
 import logging
+from pathlib import Path
 from functools import lru_cache
 from typing import Literal
 
@@ -15,7 +16,11 @@ from groq import Groq
 from huggingface_hub import InferenceClient
 
 # ─── Environment ──────────────────────────────────────────────────────────────
-load_dotenv()
+_backend_dir = Path(__file__).parent
+_project_root = _backend_dir.parent
+# Try loading .env from backend/ first, then project root
+load_dotenv(_backend_dir / ".env")
+load_dotenv(_project_root / ".env")
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(

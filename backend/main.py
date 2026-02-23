@@ -2,12 +2,15 @@
 Prism AI — FastAPI Application Entry Point
 
 Exposes endpoints for blog, video-script, and image generation.
+Serves the frontend SPA at root.
 """
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -37,6 +40,10 @@ app.add_middleware(
 # Serve generated images as static files
 app.mount("/images", StaticFiles(directory=str(IMAGE_DIR)), name="images")
 
+# Serve frontend static files (CSS, JS)
+FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+
 
 # ─── Request Models (with validation) ────────────────────────────────────────
 class BlogRequest(BaseModel):
@@ -62,16 +69,8 @@ class ImageRequest(BaseModel):
 # ─── Routes ───────────────────────────────────────────────────────────────────
 @app.get("/")
 async def home():
-    return {
-        "message": "Prism AI is Running 🚀",
-        "docs": "/docs",
-        "endpoints": {
-            "health": "/health",
-            "generate_blog": "/generate-blog",
-            "generate_video_script": "/generate-video-script",
-            "generate_image": "/generate-image",
-        },
-    }
+    """Serve the frontend SPA."""
+    return FileResponse(str(FRONTEND_DIR / "index.html"))
 
 
 @app.get("/health")
