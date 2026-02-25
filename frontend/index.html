@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,9 +8,12 @@
     <title>Prism AI — Content Generation Suite</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="/static/styles.css">
+    <link rel="icon" type="image/png" href="/static/logo.png">
 </head>
+
 <body>
 
     <!-- ─── Loading Overlay ──────────────────────────────────────────── -->
@@ -66,7 +70,8 @@
                     <form id="blog-form" class="gen-form">
                         <div class="form-group">
                             <label for="blog-product">Product Name</label>
-                            <input type="text" id="blog-product" placeholder="e.g. Tesla Model S" required maxlength="100">
+                            <input type="text" id="blog-product" placeholder="e.g. Tesla Model S" required
+                                maxlength="100">
                         </div>
                         <div class="form-group">
                             <label for="blog-tone">Tone</label>
@@ -80,7 +85,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="blog-words">Word Count: <span id="blog-words-val" class="range-val">500</span></label>
+                            <label for="blog-words">Word Count: <span id="blog-words-val"
+                                    class="range-val">500</span></label>
                             <input type="range" id="blog-words" min="100" max="3000" step="100" value="500">
                         </div>
                         <button type="submit" class="btn btn-primary" id="blog-submit">
@@ -119,7 +125,8 @@
                     <form id="video-form" class="gen-form">
                         <div class="form-group">
                             <label for="video-product">Product Name</label>
-                            <input type="text" id="video-product" placeholder="e.g. iPhone 16 Pro" required maxlength="100">
+                            <input type="text" id="video-product" placeholder="e.g. iPhone 16 Pro" required
+                                maxlength="100">
                         </div>
                         <div class="form-group">
                             <label for="video-tone">Tone</label>
@@ -132,7 +139,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="video-duration">Duration: <span id="video-duration-val" class="range-val">3 min</span></label>
+                            <label for="video-duration">Duration: <span id="video-duration-val" class="range-val">3
+                                    min</span></label>
                             <input type="range" id="video-duration" min="1" max="15" step="1" value="3">
                         </div>
                         <button type="submit" class="btn btn-primary" id="video-submit">
@@ -171,7 +179,8 @@
                     <form id="image-form" class="gen-form">
                         <div class="form-group">
                             <label for="image-product">Product Name</label>
-                            <input type="text" id="image-product" placeholder="e.g. Nike Air Max" required maxlength="100">
+                            <input type="text" id="image-product" placeholder="e.g. Nike Air Max" required
+                                maxlength="100">
                         </div>
                         <div class="form-group">
                             <label for="image-style">Visual Style</label>
@@ -198,7 +207,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="image-count">Number of Images: <span id="image-count-val" class="range-val">1</span></label>
+                            <label for="image-count">Number of Images: <span id="image-count-val"
+                                    class="range-val">1</span></label>
                             <input type="range" id="image-count" min="1" max="4" step="1" value="1">
                         </div>
                         <button type="submit" class="btn btn-primary" id="image-submit">
@@ -233,9 +243,10 @@
 
     <!-- ─── Footer ───────────────────────────────────────────────────── -->
     <footer class="footer">
-        <p>Built with <span class="gradient-text">Prism AI</span> · Groq + Hugging Face + FLUX</p>
+        <p><span class="gradient-text">Prism AI</span> · Groq + Hugging Face + FLUX</p>
     </footer>
 
     <script src="/static/app.js"></script>
 </body>
+
 </html>
