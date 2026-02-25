@@ -5,13 +5,15 @@ Uses a two-step pipeline:
   1. Groq LLM crafts an optimized image prompt
   2. Hugging Face Inference API (FLUX.1-schnell) generates the image
 
-Supports configurable model, seed, and per-platform dimensions.
+Supports configurable model, seed, per-platform dimensions, and watermarking.
 """
 
 import asyncio
 import logging
 import uuid
 from pathlib import Path
+
+from PIL import Image, ImageEnhance
 
 from config import (
     DEFAULT_IMAGE_MODEL,
@@ -26,6 +28,54 @@ logger = logging.getLogger("prism.image")
 # Directory to save generated images
 IMAGE_DIR = Path(__file__).parent / "generated_images"
 IMAGE_DIR.mkdir(exist_ok=True)
+
+# Watermark logo path
+WATERMARK_PATH = Path(__file__).parent.parent / "frontend" / "watermark.png"
+
+
+# ─── Watermark Helper ────────────────────────────────────────────────────────
+def _apply_watermark(
+    image: Image.Image,
+    opacity: float = 0.4,
+    scale: float = 0.08,
+    padding: int = 12,
+) -> Image.Image:
+    """
+    Overlay logo.png as a semi-transparent watermark on the bottom-right corner.
+
+    Args:
+        image:   The generated PIL Image to watermark.
+        opacity: Watermark transparency (0.0 = invisible, 1.0 = fully opaque).
+        scale:   Watermark size relative to the image width (0.15 = 15%).
+        padding: Pixel padding from the bottom-right edge.
+
+    Returns:
+        A new PIL Image with the watermark composited.
+    """
+    if not WATERMARK_PATH.exists():
+        logger.warning("Watermark logo not found at %s — skipping.", WATERMARK_PATH)
+        return image
+
+    # Load and resize watermark
+    watermark = Image.open(WATERMARK_PATH).convert("RGBA")
+    wm_width = int(image.width * scale)
+    wm_ratio = wm_width / watermark.width
+    wm_height = int(watermark.height * wm_ratio)
+    watermark = watermark.resize((wm_width, wm_height), Image.LANCZOS)
+
+    # Adjust opacity
+    alpha = watermark.split()[3]  # extract alpha channel
+    alpha = ImageEnhance.Brightness(alpha).enhance(opacity)
+    watermark.putalpha(alpha)
+
+    # Position: bottom-right with padding
+    base = image.convert("RGBA")
+    x = base.width - wm_width - padding
+    y = base.height - wm_height - padding
+
+    # Composite and convert back to RGB for PNG saving
+    base.paste(watermark, (x, y), watermark)
+    return base.convert("RGB")
 
 
 # ─── Prompt Engineering ──────────────────────────────────────────────────────
@@ -137,6 +187,9 @@ async def generate_image(
             model=DEFAULT_IMAGE_MODEL,
             **generate_kwargs,
         )
+
+        # Apply watermark
+        image = _apply_watermark(image)
 
         # Save the PIL Image to disk
         slug = product_name.replace(" ", "_").lower()
