@@ -25,9 +25,13 @@ from config import (
 
 logger = logging.getLogger("prism.image")
 
-# Directory to save generated images
-IMAGE_DIR = Path(__file__).parent / "generated_images"
-IMAGE_DIR.mkdir(exist_ok=True)
+import os
+# Directory to save generated images (use /tmp on Vercel)
+if os.getenv("VERCEL"):
+    IMAGE_DIR = Path("/tmp/generated_images")
+else:
+    IMAGE_DIR = Path(__file__).parent / "generated_images"
+IMAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 # Watermark logo path
 WATERMARK_PATH = Path(__file__).parent.parent / "frontend" / "watermark.png"
