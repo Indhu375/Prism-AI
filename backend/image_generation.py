@@ -130,6 +130,7 @@ async def generate_image(
     platform: str,
     seed: int | None = None,
     n: int = 1,
+    watermark: bool = True,
 ) -> dict:
     """
     Generate social media image(s) for a product using Hugging Face Inference API.
@@ -145,6 +146,7 @@ async def generate_image(
         platform:     Target social media platform
         seed:         Optional seed for reproducible generation
         n:            Number of images to generate (1-4)
+        watermark:    Whether to apply a watermark to the image
 
     Returns:
         dict with status, metadata, image URLs, and the generated prompt
@@ -189,7 +191,8 @@ async def generate_image(
         )
 
         # Apply watermark
-        image = _apply_watermark(image)
+        if watermark:
+            image = _apply_watermark(image)
 
         # Save the PIL Image to disk
         slug = product_name.replace(" ", "_").lower()

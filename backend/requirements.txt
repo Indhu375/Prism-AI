@@ -6,3 +6,9 @@ together
 Pillow
 requests
 huggingface_hub
+passlib[bcrypt]
+bcrypt==3.2.2
+python-jose[cryptography]
+aiosqlite
+pydantic[email]
+gunicorn

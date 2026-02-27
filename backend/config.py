@@ -33,6 +33,37 @@ logger = logging.getLogger("prism")
 DEFAULT_LLM_MODEL = "llama-3.3-70b-versatile"
 DEFAULT_IMAGE_MODEL = "black-forest-labs/FLUX.1-schnell"
 
+# JWT Auth Config
+JWT_SECRET = os.getenv("JWT_SECRET", "super-secret-prism-ai-key-in-dev-only")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 7
+
+# Rate Limits by Tier
+RATE_LIMITS = {
+    "free": {
+        "generate-blog": 3,
+        "generate-video-script": 3,
+        "generate-image": 2,
+        "image_batch_max": 1,
+        "watermark": True
+    },
+    "pro": {
+        "generate-blog": 50,
+        "generate-video-script": 50,
+        "generate-image": 30,
+        "image_batch_max": 4,
+        "watermark": False
+    },
+    "business": {
+        "generate-blog": "inf",
+        "generate-video-script": "inf",
+        "generate-image": "inf",
+        "image_batch_max": 4,
+        "watermark": False
+    }
+}
+
 # Platform-specific image dimensions
 PLATFORM_SIZES: dict[str, dict[str, int]] = {
     "instagram": {"width": 1080, "height": 1080},
