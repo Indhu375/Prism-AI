@@ -6,12 +6,13 @@ Serves the frontend SPA at root.
 """
 
 import logging
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import uuid
@@ -59,9 +60,15 @@ app.include_router(admin.router)
 # Serve generated images as static files
 app.mount("/images", StaticFiles(directory=str(IMAGE_DIR)), name="images")
 
-# Serve frontend static files (CSS, JS)
-FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
-app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+# Resolve frontend directory: check env var first, then relative path
+FRONTEND_DIR = Path(os.getenv("FRONTEND_DIR", Path(__file__).parent.parent / "frontend"))
+
+# Only mount static files if the frontend directory exists
+if FRONTEND_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+    logger.info("Frontend directory found at %s — serving static files.", FRONTEND_DIR)
+else:
+    logger.warning("Frontend directory not found at %s — static file serving disabled.", FRONTEND_DIR)
 
 
 # ─── Request Models (with validation) ────────────────────────────────────────
@@ -88,8 +95,14 @@ class ImageRequest(BaseModel):
 # ─── Routes ───────────────────────────────────────────────────────────────────
 @app.get("/")
 async def home():
-    """Serve the frontend SPA."""
-    return FileResponse(str(FRONTEND_DIR / "index.html"))
+    """Serve the frontend SPA (or a fallback message if frontend is not deployed)."""
+    index_file = FRONTEND_DIR / "index.html"
+    if index_file.is_file():
+        return FileResponse(str(index_file))
+    return JSONResponse(
+        {"message": "Prism AI API is running. Frontend not found at this path."},
+        status_code=200,
+    )
 
 
 @app.get("/health")
