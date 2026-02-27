@@ -7,6 +7,7 @@ Serves the frontend SPA at root.
 
 import logging
 from pathlib import Path
+from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -20,6 +21,7 @@ from config import VALID_PLATFORMS, VALID_STYLES, RATE_LIMITS
 from blog_generation import generate_blog
 from video_script import generate_video_script
 from image_generation import generate_image, IMAGE_DIR
+import database
 from database import init_db, log_usage
 from auth import (
     get_password_hash, 
@@ -108,20 +110,15 @@ async def register(request: RegisterRequest):
     user_id = str(uuid.uuid4())
     hashed_password = get_password_hash(request.password)
     
-    import aiosqlite
-    async with aiosqlite.connect(database.DB_PATH) as conn:
-         # Check if this is the first user
-         async with conn.execute("SELECT COUNT(*) FROM users") as cursor:
-             row = await cursor.fetchone()
-             user_count = row[0]
+    user_count = await database.get_user_count()
+    role = "admin" if user_count == 0 else "user"
              
-         role = "admin" if user_count == 0 else "user"
-             
+    pool = await database.get_pool()
+    async with pool.acquire() as conn:
          await conn.execute(
-             "INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, ?)",
-             (user_id, request.email, request.name, hashed_password, role)
+             "INSERT INTO users (id, email, name, password_hash, role) VALUES ($1, $2, $3, $4, $5)",
+             user_id, request.email, request.name, hashed_password, role
          )
-         await conn.commit()
              
     access_token = create_access_token(data={"sub": user_id, "tier": "free"})
     refresh_token = create_refresh_token(data={"sub": user_id})
@@ -138,11 +135,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    import aiosqlite
-    from datetime import datetime
-    async with aiosqlite.connect(database.DB_PATH) as conn:
-        await conn.execute("UPDATE users SET last_login = ? WHERE id = ?", (datetime.utcnow().isoformat(), user["id"]))
-        await conn.commit()
+    pool = await database.get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE users SET last_login = $1 WHERE id = $2", datetime.utcnow(), user["id"])
         
     access_token = create_access_token(data={"sub": user["id"], "tier": user["tier"]})
     refresh_token = create_refresh_token(data={"sub": user["id"]})

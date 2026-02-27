@@ -21,7 +21,7 @@ class UserResponse(BaseModel):
     name: str
     role: str
     tier: str
-    created_at: str
+    created_at: datetime
 
 class UsageStats(BaseModel):
     blogs_generated: int

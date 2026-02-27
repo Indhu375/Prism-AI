@@ -10,9 +10,10 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" />
-  <img src="https://img.shields.io/badge/FastAPI-0.100+-009688?style=flat-square&logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/Groq-LLaMA_3.1-orange?style=flat-square" />
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat-square&logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL-async-4169E1?style=flat-square&logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Groq-LLaMA_3.3-orange?style=flat-square" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" />
 </p>
 
@@ -28,19 +29,18 @@
 | 🎬 **Video Script** | A professional video script with hook, intro, main content, engagement prompt, and outro |
 | 🖼️ **Social Media Image** | Eye-catching AI-generated visuals tailored for platforms like Instagram, LinkedIn & Twitter |
 
-> **One input. Three powerful outputs.** Save hours of content creation time.
-
 ---
 
 ## ✨ Features
 
 - 🎯 **Single Input Workflow** — Enter a product name and let AI handle the rest
-- 📝 **SEO Blog Generation** — Structured articles with proper headings, meta descriptions & CTAs
-- 🎬 **Video Script Generation** — Platform-ready scripts with hooks, pacing & engagement prompts
-- 🖼️ **Social Media Image Generation** — AI-generated visuals for social platforms via Together AI (FLUX)
-- ⚡ **Powered by Groq + LLaMA 3.1** — Ultra-fast inference for instant content
-- 🔌 **RESTful API** — Clean FastAPI backend with interactive Swagger docs
-- 🌐 **CORS Enabled** — Ready to connect with any frontend
+- 🔐 **Secure Authentication** — JWT-based auth with Access & Refresh tokens
+- 👥 **Role-Based Access Control (RBAC)** — Dedicated User and Admin roles
+- 💎 **Subscription Tiers** — Free, Pro, and Business tiers with integrated rate limiting
+- 🛡️ **Admin Dashboard** — Manage users, monitor usage stats, and update account statuses
+- 🖼️ **Social Media Image Generation** — Powered by FLUX.1-schnell via HuggingFace/Together AI
+- ⚡ **Ultra-Fast Inference** — Powered by Groq and LLaMA 3.3
+- 🐘 **PostgreSQL Integration** — High-performance, asynchronous database handling with `asyncpg`
 
 ---
 
@@ -48,11 +48,12 @@
 
 | Layer | Technology |
 |---|---|
-| **Backend** | Python, FastAPI |
-| **Text AI** | Groq API (LLaMA 3.1) |
-| **Image AI** | Together AI (FLUX.1-schnell) |
-| **API Docs** | Swagger UI (auto-generated) |
-| **Frontend** | *Coming Soon* |
+| **Backend** | Python, FastAPI, Gunicorn |
+| **Frontend** | Vanilla JavaScript, CSS (Glassmorphism), HTML5 |
+| **Database** | PostgreSQL (Production), SQLite (Development) |
+| **Text AI** | Groq (LLaMA 3.3-70b-versatile) |
+| **Image AI** | Hugging Face / Together AI (FLUX.1-schnell) |
+| **Auth** | JWT (JSON Web Tokens) |
 
 ---
 
@@ -61,170 +62,79 @@
 ```
 Prism-AI/
 ├── backend/
-│   ├── main.py               # FastAPI app — routes & entry point
-│   ├── blog_generation.py    # Blog generation logic (Groq API)
-│   ├── video_script.py       # Video script generation logic (Groq API)
-│   ├── image_generation.py   # Image generation logic (Together AI + Groq)
-│   ├── generated_images/     # Saved generated images (auto-created)
-│   └── .gitignore
-├── .env                      # Environment variables (API keys)
-└── README.md
+│   ├── main.py               # FastAPI entry point & Auth routes
+│   ├── admin.py              # Admin-only endpoints & stats
+│   ├── database.py           # PostgreSQL connection & helper functions
+│   ├── blog_generation.py    # Blog content logic
+│   ├── video_script.py       # Video script logic
+│   ├── image_generation.py   # Image generation (FLUX)
+│   └── models.py             # Pydantic models for validation
+├── frontend/
+│   ├── index.html            # Core SPA UI
+│   ├── app.js                # Frontend logic & Auth handling
+│   ├── admin.html            # Admin dashboard UI
+│   └── admin.js              # Admin logic
+├── Dockerfile                # Production container config
+└── .env                      # API Keys & DB Connection
 ```
 
 ---
 
 ## ⚙️ Getting Started
 
-### Prerequisites
-
-- Python 3.10+
-- A [Groq API Key](https://console.groq.com/)
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/your-username/Prism-AI.git
-cd Prism-AI
+### 1. Set Up Environment
+Create a `.env` file in the `backend/` directory:
+```env
+JWT_SECRET=your_jwt_secret
+API_KEY=your_groq_api_key
+HF_API_KEY=your_huggingface_api_key
+DATABASE_URL=postgresql://user:pass@localhost:5432/prism
 ```
 
 ### 2. Install Dependencies
-
 ```bash
-pip install fastapi uvicorn groq python-dotenv together Pillow requests
+pip install -r backend/requirements.txt
 ```
 
-### 3. Set Up Environment Variables
-
-Create a `.env` file in the `backend/` directory:
-
-```env
-API_KEY=your_groq_api_key_here
-TOGETHER_API_KEY=your_together_api_key_here
-```
-
-### 4. Run the Server
-
+### 3. Run Locally (Development)
 ```bash
 cd backend
 python -m uvicorn main:app --reload
 ```
-
 The API will be live at **http://localhost:8000**
-
-📖 Interactive API docs at **http://localhost:8000/docs**
 
 ---
 
-## 📡 API Endpoints
+## 🚢 Deployment
 
-### `GET /`
-Health check & endpoint listing.
+Prism AI is production-ready. I have created detailed guides for several platforms:
 
-### `POST /generate-blog`
-Generate an SEO-optimized blog article.
-
-**Request Body:**
-```json
-{
-  "product_name": "Prism AI",
-  "tone": "Professional",
-  "word_count": 800
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "product_name": "Prism AI",
-  "tone": "Professional",
-  "word_count": 800,
-  "generated_blog": "..."
-}
-```
-
-### `POST /generate-video-script`
-Generate a structured video script.
-
-**Request Body:**
-```json
-{
-  "product_name": "Prism AI",
-  "tone": "Energetic",
-  "duration": "5"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "product_name": "Prism AI",
-  "tone": "Energetic",
-  "duration_mins": 5,
-  "generated_script": "..."
-}
-```
-
-### `POST /generate-image`
-Generate a social media image for a product.
-
-**Request Body:**
-```json
-{
-  "product_name": "Prism AI",
-  "style": "Minimalist",
-  "platform": "Instagram"
-}
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "product_name": "Prism AI",
-  "style": "Minimalist",
-  "platform": "Instagram",
-  "dimensions": { "width": 1080, "height": 1080 },
-  "image_prompt": "...",
-  "image_url": "/images/prism_ai_instagram_abc12345.png",
-  "filename": "prism_ai_instagram_abc12345.png"
-}
-```
+- 🧱 **[Dokku (Heroku-style VPS)](./docs/dokku_deployment.md)**
+- 🚀 **[Coolify (Web Dashboard VPS)](./docs/coolify_deployment.md)**
+- ☁️ **[Render + Supabase (100% Free)](./docs/free_deployment_guide.md)**
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] Blog Generation API
-- [x] Video Script Generation API
+- [x] Full Authentication System
+- [x] Admin Dashboard & RBAC
+- [x] PostgreSQL Migration
 - [x] Social Media Image Generation
-- [ ] Frontend Website (React / Next.js)
-- [ ] User Authentication
-- [ ] Content History & Dashboard
+- [ ] Stripe Payment Integration
+- [ ] Content History & Export (PDF/MD)
 - [ ] Multi-language Support
-- [ ] Export to PDF / Markdown
+- [ ] Team Workspaces
 
 ---
 
 ## 🤝 Contributing
-
-Contributions are welcome! Feel free to open issues or submit pull requests.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
+Contributions are welcome! Please fork the repo and open a PR.
 
 ## 📄 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+Licensed under the **MIT License**.
 
 ---
-
 <p align="center">
   Built with 💜 by <b>Prism AI Team</b>
 </p>

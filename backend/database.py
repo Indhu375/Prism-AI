@@ -1,12 +1,23 @@
-import sqlite3
-import aiosqlite
-from pathlib import Path
+import asyncpg
+import logging
+from config import DATABASE_URL
 
-DB_PATH = Path(__file__).parent / "prism.db"
+logger = logging.getLogger("prism.database")
+
+# Connection pool setup
+pool = None
+
+async def get_pool():
+    global pool
+    if not pool:
+        pool = await asyncpg.create_pool(DATABASE_URL)
+    return pool
 
 async def init_db():
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute('''
+    p = await get_pool()
+    async with p.acquire() as conn:
+        # Create users table
+        await conn.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
                 email TEXT UNIQUE NOT NULL,
@@ -14,60 +25,69 @@ async def init_db():
                 password_hash TEXT NOT NULL,
                 role TEXT DEFAULT 'user',
                 tier TEXT DEFAULT 'free',
-                is_active INTEGER DEFAULT 1,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                last_login TEXT
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_login TIMESTAMP
             )
         ''')
         
-        await db.execute('''
+        # Create usage_logs table
+        await conn.execute('''
             CREATE TABLE IF NOT EXISTS usage_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 endpoint TEXT NOT NULL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             )
         ''')
-        await db.commit()
 
 async def get_db():
-    db = await aiosqlite.connect(DB_PATH)
-    db.row_factory = aiosqlite.Row
-    try:
-        yield db
-    finally:
-        await db.close()
+    global pool
+    if not pool:
+        pool = await asyncpg.create_pool(DATABASE_URL)
+    async with pool.acquire() as conn:
+        yield conn
 
 # Helper queries
 async def get_user_by_email(email: str):
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM users WHERE email = ?", (email,)) as cursor:
-            return await cursor.fetchone()
+    global pool
+    if not pool: pool = await asyncpg.create_pool(DATABASE_URL)
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE email = $1", email)
+        return dict(row) if row else None
 
 async def get_user_by_id(user_id: str):
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM users WHERE id = ?", (user_id,)) as cursor:
-            return await cursor.fetchone()
+    global pool
+    if not pool: pool = await asyncpg.create_pool(DATABASE_URL)
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE id = $1", user_id)
+        return dict(row) if row else None
 
 async def log_usage(user_id: str, endpoint: str):
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "INSERT INTO usage_logs (user_id, endpoint) VALUES (?, ?)",
-            (user_id, endpoint)
+    global pool
+    if not pool: pool = await asyncpg.create_pool(DATABASE_URL)
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO usage_logs (user_id, endpoint) VALUES ($1, $2)",
+            user_id, endpoint
         )
-        await db.commit()
 
 async def get_today_usage(user_id: str, endpoint: str) -> int:
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute('''
+    global pool
+    if not pool: pool = await asyncpg.create_pool(DATABASE_URL)
+    async with pool.acquire() as conn:
+        count = await conn.fetchval('''
             SELECT COUNT(*) 
             FROM usage_logs 
-            WHERE user_id = ? 
-              AND endpoint = ? 
-              AND date(created_at) = date('now')
-        ''', (user_id, endpoint)) as cursor:
-            row = await cursor.fetchone()
-            return row[0] if row else 0
+            WHERE user_id = $1 
+              AND endpoint = $2 
+              AND created_at::date = CURRENT_DATE
+        ''', user_id, endpoint)
+        return count if count else 0
+
+async def get_user_count() -> int:
+    global pool
+    if not pool: pool = await asyncpg.create_pool(DATABASE_URL)
+    async with pool.acquire() as conn:
+        return await conn.fetchval("SELECT COUNT(*) FROM users")
