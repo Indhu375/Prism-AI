@@ -211,6 +211,102 @@ body {
     background: var(--error);
 }
 
+/* User Profile Dropdown */
+.user-profile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-md);
+    transition: background 0.3s var(--ease);
+}
+
+.user-profile:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.user-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.user-tier {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.tier-free {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+}
+
+.tier-pro {
+    background: rgba(124, 58, 237, 0.2);
+    color: var(--accent-1);
+    border: 1px solid rgba(124, 58, 237, 0.4);
+}
+
+.tier-business {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    min-width: 180px;
+    display: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 200;
+}
+
+.user-profile.open .dropdown-menu {
+    display: block;
+    animation: fadeSlideIn 0.2s var(--ease);
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.6rem 1rem;
+    color: var(--text-primary);
+    background: transparent;
+    border: none;
+    font-size: 0.85rem;
+    font-family: var(--font);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s var(--ease);
+}
+
+.dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 0.4rem 0;
+}
+
+.text-danger {
+    color: var(--error);
+}
+
 /* ─── Hero ───────────────────────────────────────────────────────────── */
 .hero {
     text-align: center;
@@ -258,6 +354,38 @@ body {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Auth Panels */
+.auth-panel {
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+.auth-card {
+    position: static;
+    margin-top: 2rem;
+}
+
+.auth-links {
+    text-align: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.text-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-family: var(--font);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: color 0.2s var(--ease);
+}
+
+.text-btn:hover {
+    color: var(--accent-2);
 }
 
 /* ─── Generator Grid ─────────────────────────────────────────────────── */
@@ -323,6 +451,17 @@ body {
     margin-bottom: 0.5rem;
 }
 
+.usage-stats {
+    font-size: 0.75rem;
+    color: var(--accent-3);
+    background: rgba(6, 182, 212, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
 /* ─── Forms ──────────────────────────────────────────────────────────── */
 .gen-form {
     display: flex;
@@ -345,6 +484,8 @@ body {
 }
 
 .form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"],
 .form-group select {
     background: var(--bg-input);
     border: 1px solid var(--border-color);
@@ -358,13 +499,17 @@ body {
 }
 
 .form-group input[type="text"]:focus,
+.form-group input[type="email"]:focus,
+.form-group input[type="password"]:focus,
 .form-group select:focus {
     background: var(--bg-input-focus);
     border-color: var(--accent-1);
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
 }
 
-.form-group input[type="text"]::placeholder {
+.form-group input[type="text"]::placeholder,
+.form-group input[type="email"]::placeholder,
+.form-group input[type="password"]::placeholder {
     color: var(--text-muted);
 }
 
@@ -435,6 +580,25 @@ body {
 }
 
 .btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.75rem 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-top: 0.5rem;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--text-muted);
+    transform: translateY(-1px);
+}
+
+.btn-secondary:active {
     transform: translateY(0);
 }
 

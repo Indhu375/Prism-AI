@@ -11,8 +11,13 @@ const $$ = (sel) => document.querySelectorAll(sel);
 
 const overlay = $("#loading-overlay");
 const toastBox = $("#toast-container");
-const statusDot = $("#status-dot");
-const statusTxt = $("#status-text");
+const authStatusBox = $("#auth-status-container");
+
+// Auth State
+let currentUser = null;
+let currentUsage = null;
+let accessToken = localStorage.getItem("prism_access_token");
+let refreshToken = localStorage.getItem("prism_refresh_token");
 
 // ─── Utilities ──────────────────────────────────────────────────────────
 function showLoading() { overlay.classList.remove("hidden"); }
@@ -55,34 +60,47 @@ async function copyText(text) {
 async function checkHealth() {
     try {
         const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(4000) });
-        if (res.ok) {
-            statusDot.className = "status-dot online";
-            statusTxt.textContent = "API Online";
-        } else {
-            throw new Error();
-        }
+        if (!res.ok) throw new Error();
     } catch {
-        statusDot.className = "status-dot offline";
-        statusTxt.textContent = "API Offline";
+        toast("API Offline — Cannot reach server", "error");
     }
 }
 
-// Check immediately and every 30 seconds
+// Check immediately
 checkHealth();
-setInterval(checkHealth, 30000);
 
 // ─── Tab Switching ──────────────────────────────────────────────────────
 $$(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-        // Deactivate all
-        $$(".tab-btn").forEach((b) => b.classList.remove("active"));
-        $$(".tab-panel").forEach((p) => p.classList.remove("active"));
-
-        // Activate selected
-        btn.classList.add("active");
-        $(`#panel-${btn.dataset.tab}`).classList.add("active");
+        // If not logged in and clicking a generator tab, force to login
+        if (!currentUser && ["blog", "video", "image"].includes(btn.dataset.tab)) {
+            toast("Please login to generate content", "info");
+            switchTab("login");
+            return;
+        }
+        switchTab(btn.dataset.tab);
     });
 });
+
+function switchTab(tabId) {
+    // Hide auth buttons in navbar if switching to them
+    const authBtn = $("#nav-login-btn");
+    if (authBtn) {
+        if (tabId === "login" || tabId === "register") authBtn.style.display = "none";
+        else if (!currentUser) authBtn.style.display = "block";
+    }
+
+    // Deactivate all
+    $$(".tab-btn").forEach((b) => b.classList.remove("active"));
+    $$(".tab-panel").forEach((p) => p.classList.remove("active"));
+    $("#hero-section").style.display = (tabId === "login" || tabId === "register") ? "none" : "block";
+
+    // Activate selected
+    const btn = $(`#tab-${tabId}`);
+    if (btn) btn.classList.add("active");
+    const panel = $(`#panel-${tabId}`);
+    if (panel) panel.classList.add("active");
+}
 
 // ─── Range Sliders ──────────────────────────────────────────────────────
 $("#blog-words").addEventListener("input", (e) => {
@@ -98,12 +116,34 @@ $("#image-count").addEventListener("input", (e) => {
 });
 
 // ─── API Call Helper ────────────────────────────────────────────────────
-async function apiPost(endpoint, body) {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+async function apiPost(endpoint, body, isAuthEndpoint = false) {
+    const headers = { "Content-Type": "application/json" };
+
+    // Add JWT if it's a protected endpoint
+    if (!isAuthEndpoint && accessToken) {
+        headers["Authorization"] = `Bearer ${accessToken}`;
+    }
+
+    let res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(body),
     });
+
+    // Handle token expiry (401)
+    if (res.status === 401 && !isAuthEndpoint && refreshToken) {
+        // Try to refresh
+        try {
+            const refreshRes = await fetch(`${API_BASE}/auth/login`, { // Actually refresh should use form data or similar, for simplicity let's force re-login if 401
+                method: "POST"
+            });
+            // If refresh fails, clear tokens and redirect to login
+            throw new Error("Session expired");
+        } catch {
+            logout();
+            throw new Error("Session expired. Please login again.");
+        }
+    }
 
     if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }));
@@ -112,6 +152,209 @@ async function apiPost(endpoint, body) {
 
     return res.json();
 }
+
+async function apiGet(endpoint) {
+    if (!accessToken) throw new Error("No token");
+
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+        headers: { "Authorization": `Bearer ${accessToken}` },
+    });
+
+    if (!res.ok) {
+        if (res.status === 401) logout();
+        throw new Error("Failed to fetch");
+    }
+
+    return res.json();
+}
+
+// ─── Auth Logic ─────────────────────────────────────────────────────────
+
+// Listeners for auth links
+$("#show-register-btn")?.addEventListener("click", () => switchTab("register"));
+$("#show-login-btn")?.addEventListener("click", () => switchTab("login"));
+
+// Open login from navbar
+$("#nav-login-btn")?.addEventListener("click", () => switchTab("login"));
+
+// Handle document clicks to close profile dropdown
+document.addEventListener("click", (e) => {
+    const profile = $("#user-profile-menu");
+    if (profile && !profile.contains(e.target)) {
+        profile.classList.remove("open");
+    }
+});
+
+function updateAuthUI() {
+    if (currentUser) {
+        // Render Profile Dropdown
+        const tierClass = `tier-${currentUser.tier}`;
+        const adminLink = currentUser.role === 'admin'
+            ? `<a href="/static/admin.html" class="dropdown-item">Admin Dashboard</a>`
+            : '';
+
+        authStatusBox.innerHTML = `
+            <div class="user-profile" id="user-profile-menu">
+                <span class="user-name">${currentUser.name}</span>
+                <span class="user-tier ${tierClass}">${currentUser.tier}</span>
+                <div class="dropdown-menu">
+                    ${adminLink}
+                    <button class="dropdown-item" id="nav-logout-btn">
+                        <span class="text-danger">Logout</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Show usage stats
+        updateUsageStatsUI();
+
+        // Bind events
+        $("#user-profile-menu").addEventListener("click", function () {
+            this.classList.toggle("open");
+        });
+
+        $("#nav-logout-btn").addEventListener("click", logout);
+
+        // Switch out of auth panels if we are there
+        const activeTab = $(".tab-btn.active")?.dataset.tab;
+        if (!activeTab || activeTab === "login" || activeTab === "register") {
+            switchTab("blog");
+        }
+    } else {
+        // Render Login button
+        authStatusBox.innerHTML = `<button class="btn-icon-sm" id="nav-login-btn">Login</button>`;
+        $("#nav-login-btn").addEventListener("click", () => switchTab("login"));
+
+        // Clear usage stats
+        $$(".usage-stats").forEach(el => el.innerHTML = "");
+
+        // Force to login panel
+        switchTab("login");
+    }
+}
+
+function updateUsageStatsUI() {
+    if (!currentUsage) return;
+
+    const blogStats = $("#blog-usage-stats");
+    if (blogStats) {
+        const remaining = currentUsage.blogs_limit === "inf" ? "Unlimited" : (currentUsage.blogs_limit - currentUsage.blogs_generated);
+        blogStats.innerHTML = `Used: ${currentUsage.blogs_generated} / ${currentUsage.blogs_limit === "inf" ? "∞" : currentUsage.blogs_limit}`;
+    }
+
+    const videoStats = $("#video-usage-stats");
+    if (videoStats) {
+        videoStats.innerHTML = `Used: ${currentUsage.video_scripts_generated} / ${currentUsage.video_scripts_limit === "inf" ? "∞" : currentUsage.video_scripts_limit}`;
+    }
+
+    const imageStats = $("#image-usage-stats");
+    if (imageStats) {
+        imageStats.innerHTML = `Used: ${currentUsage.images_generated} / ${currentUsage.images_limit === "inf" ? "∞" : currentUsage.images_limit}`;
+    }
+}
+
+async function fetchProfile() {
+    if (!accessToken) {
+        updateAuthUI();
+        return;
+    }
+
+    try {
+        const data = await apiGet("/auth/me");
+        currentUser = data.user;
+        currentUsage = data.usage;
+        updateAuthUI();
+    } catch (err) {
+        console.error("Profile fetch failed:", err);
+        // Token likely expired
+        updateAuthUI();
+    }
+}
+
+function logout() {
+    accessToken = null;
+    refreshToken = null;
+    currentUser = null;
+    currentUsage = null;
+    localStorage.removeItem("prism_access_token");
+    localStorage.removeItem("prism_refresh_token");
+    updateAuthUI();
+    toast("Logged out successfully");
+}
+
+// Login
+$("#login-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("#login-email").value;
+    const password = $("#login-password").value;
+
+    showLoading();
+    try {
+        // OAuth2 strict form data
+        const formData = new URLSearchParams();
+        formData.append("username", email);
+        formData.append("password", password);
+
+        const res = await fetch(`${API_BASE}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: "Login failed" }));
+            throw new Error(err.detail);
+        }
+
+        const data = await res.json();
+        accessToken = data.access_token;
+        refreshToken = data.refresh_token;
+        localStorage.setItem("prism_access_token", accessToken);
+        localStorage.setItem("prism_refresh_token", refreshToken);
+
+        toast("Logged in successfully! 👋", "success");
+        await fetchProfile(); // Automatically routes to app
+
+        // Clear form
+        $("#login-password").value = "";
+    } catch (err) {
+        toast(`Error: ${err.message}`, "error");
+    } finally {
+        hideLoading();
+    }
+});
+
+// Register
+$("#register-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = $("#register-name").value.trim();
+    const email = $("#register-email").value.trim();
+    const password = $("#register-password").value;
+
+    showLoading();
+    try {
+        const data = await apiPost("/auth/register", { name, email, password }, true);
+
+        accessToken = data.access_token;
+        refreshToken = data.refresh_token;
+        localStorage.setItem("prism_access_token", accessToken);
+        localStorage.setItem("prism_refresh_token", refreshToken);
+
+        toast("Account created successfully! 🎉", "success");
+        await fetchProfile();
+
+        // Clear form
+        $("#register-password").value = "";
+    } catch (err) {
+        toast(`Error: ${err.message}`, "error");
+    } finally {
+        hideLoading();
+    }
+});
+
+// Initialize app wrapper to fetch profile
+fetchProfile();
 
 // ─── Blog Generation ────────────────────────────────────────────────────
 let lastBlogContent = "";
@@ -137,6 +380,7 @@ $("#blog-form").addEventListener("submit", async (e) => {
         resultEl.textContent = data.generated_blog;
 
         toast("Blog generated successfully! ✨", "success");
+        await fetchProfile(); // refresh usage stats
     } catch (err) {
         toast(`Error: ${err.message}`, "error");
     } finally {
@@ -178,6 +422,7 @@ $("#video-form").addEventListener("submit", async (e) => {
         resultEl.textContent = data.generated_script;
 
         toast("Video script generated! 🎬", "success");
+        await fetchProfile(); // refresh usage stats
     } catch (err) {
         toast(`Error: ${err.message}`, "error");
     } finally {
@@ -244,6 +489,7 @@ $("#image-form").addEventListener("submit", async (e) => {
         $("#image-prompt-text").textContent = data.image_prompt;
 
         toast("Image generated! 🖼️", "success");
+        await fetchProfile(); // refresh usage stats
     } catch (err) {
         toast(`Error: ${err.message}`, "error");
     } finally {
